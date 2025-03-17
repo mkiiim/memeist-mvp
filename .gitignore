@@ -1,0 +1,34 @@
+# Node.js dependencies
+node_modules/
+
+# Build directories (if using a bundler like Webpack, Vite, or Parcel)
+dist/
+build/
+
+# Editor & OS files
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Logs and debugging files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment variables (security reasons)
+.env
+.env.local
+.env.*.local
+
+# Cache files
+.cache/
+.parcel-cache/
+
+# Dependency lock files (if using a specific package manager)
+pnpm-lock.yaml
+yarn.lock
+
+# copilot and AI
+.copilot/
+.copilotignore

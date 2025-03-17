@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>memeist - Voice Memo Analyzer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@200;300;400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1 class="app-name">memeist</h1>
+        <p>upload your voice memo to transcribe and extract insights.</p>
+        
+        <!-- Custom file input with path display -->
+        <div class="file-input-container">
+            <input type="text" id="file-path" placeholder="select a file..." readonly>
+            <button id="browse-button">...</button>
+            <button id="upload-button" onclick="uploadFile()">Go!</button>
+            <input type="file" id="audio-upload" accept="audio/*" style="display: none;">
+        </div>
+        
+        <div class="loading-container" id="loading-indicator">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">processing your audio file... this may take a moment.</div>
+        </div>
+        
+        <!-- Development tools box -->
+        <div class="dev-tools-container">
+            <div class="dev-tools-header">Development Tools</div>
+            <div class="dev-tools-content">
+                <div class="model-selection">
+                    <label for="model-select">Analysis Model:</label>
+                    <select id="model-select">
+                        <option value="openai">GPT-4</option>
+                        <option value="claude">Claude</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <div class="pane-container">
+            <div class="pane" id="transcript-pane">
+                <div class="pane-header">
+                    <h2>transcript</h2>
+                    <div class="pane-controls">
+                        <button id="copy-transcript-btn" title="copy to clipboard"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>
+                        <button onclick="event.stopPropagation(); togglePane('transcript-pane',event)">toggle</button>
+                    </div>
+                </div>
+                <pre id="transcript">No transcript available yet. Upload an audio file to get started.</pre>
+            </div>
+            
+            <div class="pane" id="insights-pane">
+                <div class="pane-header">
+                    <h2>insights</h2>
+                    <div class="pane-controls">
+                        <button id="copy-insights-btn" title="copy to clipboard"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>
+                        <button onclick="event.stopPropagation(); togglePane('insights-pane',event)">toggle</button>
+                    </div>
+                </div>
+                <pre id="insights">No insights available yet. Upload an audio file to get started.</pre>
+            </div>
+        </div>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>
