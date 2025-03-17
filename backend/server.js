@@ -1,4 +1,4 @@
-const { postProcessInsights } = require('./utils');
+const { postProcessInsights, countCheckboxes } = require('./utils');
 const express = require('express');
 const multer = require('multer');
 const yaml = require('js-yaml');
@@ -6,14 +6,16 @@ const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
 const cors = require('cors');
+// Import the debug module
+const debug = require('./debug');
+const { createStore } = require('./dataStore');
 require('dotenv').config();
 
 // Load prompts from JSON or YAML file
-// const prompts = JSON.parse(fs.readFileSync(path.join(__dirname, 'prompts.json'), 'utf8'));
 const prompts = yaml.load(fs.readFileSync(path.join(__dirname, 'prompts.yaml'), 'utf8'));
 
-// In-memory storage for memos (in a production app, this would be a database)
-const memos = new Map();
+// Initialize data store for memos
+const memos = createStore();
 
 const app = express();
 const PORT = 3000;
@@ -34,15 +36,6 @@ const storage = multer.diskStorage({
   }
 });
 const upload = multer({ storage });
-
-// Debugging function
-const debug = (message, data = null) => {
-  const timestamp = new Date().toISOString();
-  console.log(`[${timestamp}] ${message}`);
-  if (data) {
-    console.log(JSON.stringify(data, null, 2));
-  }
-};
 
 // Helper function to generate unique IDs
 const generateId = (prefix) => {
@@ -196,12 +189,6 @@ function ensureUploadsDirectory() {
   }
 }
 
-// Helper function to count checkboxes in the response
-const countCheckboxes = (text) => {
-  const checkboxRegex = /- \[ \]/g;
-  return (text.match(checkboxRegex) || []).length;
-};
-
 // Parse insights to extract structured data (todo items, follow-ups, etc.)
 const parseInsights = (insightsText) => {
   // This is a simplified version - in production, this would be more robust
@@ -287,6 +274,20 @@ const parseInsights = (insightsText) => {
 // API Routes for Memos
 // ==============================
 
+// For testing - clear the data store
+if (process.env.NODE_ENV === 'test') {
+  app.post('/test/clear-data', async (req, res) => {
+    try {
+      await memos.clear();
+      debug('Data store cleared for testing');
+      res.status(200).json({ message: 'Data store cleared' });
+    } catch (error) {
+      debug('Error clearing data store:', error);
+      res.status(500).json({ error: 'Failed to clear data store' });
+    }
+  });
+}
+
 // 1. Upload Audio for Processing (Create a new memo)
 app.post('/v1/memos', upload.single('audio'), async (req, res) => {
   debug('Received memo creation request', { 
@@ -321,8 +322,8 @@ app.post('/v1/memos', upload.single('audio'), async (req, res) => {
       metadata: req.body.metadata ? JSON.parse(req.body.metadata) : {}
     };
     
-    // Store the memo in our in-memory database
-    memos.set(memoId, memo);
+    // Store the memo in our data store
+    await memos.set(memoId, memo);
     
     // Return initial response immediately
     res.status(202).json({
@@ -349,7 +350,7 @@ app.post('/v1/memos', upload.single('audio'), async (req, res) => {
 
 // Asynchronous function to process the audio file
 const processAudioFile = async (memoId) => {
-  const memo = memos.get(memoId);
+  const memo = await memos.get(memoId);
   if (!memo) return;
   
   try {
@@ -359,6 +360,7 @@ const processAudioFile = async (memoId) => {
     
     // Update memo with transcript
     memo.transcript = transcript;
+    await memos.set(memoId, memo);
     
     // Step 2: Analyze the transcript
     let insights;
@@ -391,7 +393,7 @@ const processAudioFile = async (memoId) => {
     }
     
     // Update stored memo
-    memos.set(memoId, memo);
+    await memos.set(memoId, memo);
     debug(`Memo ${memoId} processing completed successfully`);
     
   } catch (error) {
@@ -406,16 +408,16 @@ const processAudioFile = async (memoId) => {
     };
     
     // Update stored memo
-    memos.set(memoId, memo);
+    await memos.set(memoId, memo);
   }
 };
 
 // 2. Get Memo by ID
-app.get('/v1/memos/:memoId', (req, res) => {
+app.get('/v1/memos/:memoId', async (req, res) => {
   const { memoId } = req.params;
   debug(`Request for memo ${memoId}`);
   
-  const memo = memos.get(memoId);
+  const memo = await memos.get(memoId);
   if (!memo) {
     return res.status(404).json({
       error: {
@@ -430,43 +432,39 @@ app.get('/v1/memos/:memoId', (req, res) => {
 });
 
 // 3. List All Memos
-app.get('/v1/memos', (req, res) => {
+app.get('/v1/memos', async (req, res) => {
   const { limit = 20, offset = 0, status, sort = 'created_at', order = 'desc' } = req.query;
   debug('Request for memo list', { limit, offset, status, sort, order });
   
-  // Convert Map to array
-  let memoArray = Array.from(memos.values());
-  
-  // Apply filters
-  if (status) {
-    memoArray = memoArray.filter(memo => memo.status === status);
+  try {
+    const result = await memos.list({
+      limit,
+      offset,
+      status,
+      sort,
+      order
+    });
+    
+    // Return the paginated list
+    res.json(result);
+  } catch (error) {
+    debug('Error listing memos:', error);
+    res.status(500).json({
+      error: {
+        code: 'server_error',
+        message: 'Error listing memos',
+        details: error.message
+      }
+    });
   }
-  
-  // Apply sorting
-  memoArray.sort((a, b) => {
-    if (order.toLowerCase() === 'asc') {
-      return a[sort] > b[sort] ? 1 : -1;
-    } else {
-      return a[sort] < b[sort] ? 1 : -1;
-    }
-  });
-  
-  // Apply pagination
-  const paginatedMemos = memoArray.slice(offset, offset + parseInt(limit));
-  
-  // Return the paginated list
-  res.json({
-    count: memoArray.length,
-    results: paginatedMemos
-  });
 });
 
 // 4. Delete a Memo
-app.delete('/v1/memos/:memoId', (req, res) => {
+app.delete('/v1/memos/:memoId', async (req, res) => {
   const { memoId } = req.params;
   debug(`Request to delete memo ${memoId}`);
   
-  const memo = memos.get(memoId);
+  const memo = await memos.get(memoId);
   if (!memo) {
     return res.status(404).json({
       error: {
@@ -477,16 +475,122 @@ app.delete('/v1/memos/:memoId', (req, res) => {
   }
   
   // Delete the memo
-  memos.delete(memoId);
+  await memos.delete(memoId);
   
   // Return success response
   res.status(204).end();
 });
 
+// 5. Export a Memo as Markdown
+app.get('/v1/memos/:memoId/export/markdown', async (req, res) => {
+  const { memoId } = req.params;
+  debug(`Request to export memo ${memoId} as Markdown`);
+  
+  const memo = await memos.get(memoId);
+  if (!memo) {
+    return res.status(404).json({
+      error: {
+        code: 'not_found',
+        message: 'Memo not found'
+      }
+    });
+  }
+  
+  // Check that the memo is completed
+  if (memo.status !== 'completed') {
+    return res.status(400).json({
+      error: {
+        code: 'invalid_state',
+        message: 'Memo is not yet processed'
+      }
+    });
+  }
+  
+  // Format date for the filename
+  const date = new Date(memo.created_at);
+  const formattedDate = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+  
+  // Create the filename
+  const sanitizedTitle = memo.title.replace(/[^a-z0-9]/gi, '-').replace(/-+/g, '-');
+  const filename = `${sanitizedTitle}-${formattedDate}.md`;
+  
+  // Generate markdown content
+  let markdownContent = `# ${memo.title}\n\n`;
+  markdownContent += `_Created: ${new Date(memo.created_at).toLocaleString()}_\n\n`;
+  
+  // Add transcript section
+  markdownContent += `## Transcript\n\n${memo.transcript}\n\n`;
+  
+  // Add insights section (use raw_insights if available, otherwise format structured insights)
+  markdownContent += `## Insights\n\n`;
+  
+  if (memo.raw_insights) {
+    // Use the raw markdown insights if available
+    markdownContent += memo.raw_insights;
+  } else if (memo.insights) {
+    // Format the structured insights to markdown
+    
+    // Add summary section
+    markdownContent += '**Transcript Summary:**\n';
+    if (memo.insights.summary && memo.insights.summary.length > 0) {
+      memo.insights.summary.forEach(item => {
+        markdownContent += `- ${item}\n`;
+      });
+    } else {
+      markdownContent += '- No summary available\n';
+    }
+    markdownContent += '\n';
+    
+    // Add to-do section
+    markdownContent += '**To-Do List:**\n';
+    if (memo.insights.todo_items && memo.insights.todo_items.length > 0) {
+      memo.insights.todo_items.forEach(item => {
+        markdownContent += `- [ ] ${item.text}\n`;
+      });
+    } else {
+      markdownContent += '- [ ] No tasks identified\n';
+    }
+    markdownContent += '\n';
+    
+    // Add follow-ups section
+    markdownContent += '**Follow-Ups:**\n';
+    if (memo.insights.follow_ups && memo.insights.follow_ups.length > 0) {
+      memo.insights.follow_ups.forEach(item => {
+        markdownContent += `- [ ] ${item.text}\n`;
+      });
+    } else {
+      markdownContent += '- [ ] No follow-ups identified\n';
+    }
+    markdownContent += '\n';
+    
+    // Add references section
+    markdownContent += '**References & Links:**\n';
+    if (memo.insights.references && memo.insights.references.length > 0) {
+      memo.insights.references.forEach(item => {
+        if (item.url) {
+          markdownContent += `- [${item.text}](${item.url})\n`;
+        } else {
+          markdownContent += `- ${item.text}\n`;
+        }
+      });
+    } else {
+      markdownContent += '- No references available\n';
+    }
+  }
+  
+  // Set headers for file download
+  res.setHeader('Content-Type', 'text/markdown');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  
+  // Send the markdown content as the response
+  res.send(markdownContent);
+  
+  debug(`Memo ${memoId} exported as Markdown successfully`);
+});
+
 // ==============================
 // Legacy API Route (for backward compatibility)
 // ==============================
-
 
 // API Route to Handle File Upload, Transcription & LLM Analysis
 app.post('/upload', upload.single('audio'), async (req, res) => {
@@ -551,22 +655,44 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-app.listen(PORT, () => {
-  debug(`Server running on http://localhost:${PORT}`);
-  debug('Environment variables loaded:', {
-    OPENAI_API_KEY_SET: !!process.env.APIKEY_OPENAI,
-    ANTHROPIC_API_KEY_SET: !!process.env.APIKEY_ANTHROPIC_MEMEIST
+// Add test helper routes (only in development/test environments)
+if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+  app.post('/test/create-processing-memo', express.json(), async (req, res) => {
+    const memoId = `test_processing_memo_${Date.now()}`;
+    
+    const memo = {
+      id: memoId,
+      status: 'processing',
+      created_at: new Date().toISOString(),
+      title: req.body.title || 'Test Processing Memo'
+    };
+    
+    await memos.set(memoId, memo);
+    
+    debug(`Created test processing memo with ID: ${memoId}`);
+    res.json({ id: memoId, message: 'Processing memo created for testing' });
   });
-  
-  // Check if any required API keys are missing
-  if (!process.env.APIKEY_OPENAI) {
-    debug('WARNING: OpenAI API key (APIKEY_OPENAI) is missing in .env file');
-  }
-  
-  if (!process.env.APIKEY_ANTHROPIC_MEMEIST) {
-    debug('WARNING: Anthropic API key (APIKEY_ANTHROPIC_MEMEIST) is missing in .env file');
-  }
-});
+}
+
+// Only start the server if this file is being run directly, not when imported in tests
+if (require.main === module) {
+  app.listen(PORT, () => {
+    debug(`Server running on http://localhost:${PORT}`);
+    debug('Environment variables loaded:', {
+      OPENAI_API_KEY_SET: !!process.env.APIKEY_OPENAI,
+      ANTHROPIC_API_KEY_SET: !!process.env.APIKEY_ANTHROPIC_MEMEIST
+    });
+    
+    // Check if any required API keys are missing
+    if (!process.env.APIKEY_OPENAI) {
+      debug('WARNING: OpenAI API key (APIKEY_OPENAI) is missing in .env file');
+    }
+    
+    if (!process.env.APIKEY_ANTHROPIC_MEMEIST) {
+      debug('WARNING: Anthropic API key (APIKEY_ANTHROPIC_MEMEIST) is missing in .env file');
+    }
+  });
+}
 
 // Export for testing
 module.exports = app;

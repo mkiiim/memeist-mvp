@@ -3,11 +3,14 @@
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:unit": "jest tests/unit",
-    "test:integration": "jest tests/integration",
-    "start": "node server.js"
+    "start": "NODE_ENV=development node server.js",
+    "start:prod": "NODE_ENV=production node server.js",
+    "test": "NODE_ENV=test jest",
+    "test:watch": "NODE_ENV=test jest --watch",
+    "test:unit": "NODE_ENV=test jest tests/unit",
+    "test:integration": "NODE_ENV=test jest tests/integration",
+    "test:setup-audio": "NODE_ENV=test node tests/setup-test-audio.js",
+    "test:setup-memos": "NODE_ENV=test node tests/setup-test-memos.js"
   },
   "keywords": [],
   "author": "",
@@ -18,6 +21,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "form-data": "^4.0.0",
     "js-yaml": "^4.1.0",
     "multer": "^1.4.5-lts.1"
   },
