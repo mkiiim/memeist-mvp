@@ -18,7 +18,7 @@
         <div class="file-input-container">
             <input type="text" id="file-path" placeholder="select a file..." readonly>
             <button id="browse-button">...</button>
-            <button id="upload-button" onclick="uploadFile()">Go!</button>
+            <button id="upload-button">Go!</button>
             <input type="file" id="audio-upload" accept="audio/*" style="display: none;">
         </div>
         
@@ -37,6 +37,14 @@
                         <option value="openai">GPT-4</option>
                         <option value="claude">Claude</option>
                     </select>
+                </div>
+                <div class="api-selection">
+                    <label for="api-mode">API Mode:</label>
+                    <select id="api-mode">
+                        <option value="v1">New API (v1)</option>
+                        <option value="legacy">Legacy API</option>
+                    </select>
+                    <div class="api-info">New API supports asynchronous processing and persistent storage.</div>
                 </div>
             </div>
         </div>
@@ -62,6 +70,21 @@
                     </div>
                 </div>
                 <pre id="insights">No insights available yet. Upload an audio file to get started.</pre>
+            </div>
+        </div>
+        
+        <!-- Export actions section -->
+        <div class="export-actions">
+            <div class="export-header">Export</div>
+            <div class="export-buttons">
+                <button id="export-markdown" disabled>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    Markdown
+                </button>
+                <button id="export-obsidian" disabled>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+                    Obsidian
+                </button>
             </div>
         </div>
     </div>

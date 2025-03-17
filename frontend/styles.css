@@ -432,3 +432,221 @@ pre {
         font-size: 2.5rem;
     }
 }
+
+/* Dev Tools Enhancements
+-------------------------------------------------- */
+.dev-tools-content {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.model-selection, .api-selection {
+    flex-grow: 1;
+    min-width: 120px;
+}
+
+.api-info {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-top: 5px;
+    font-style: italic;
+}
+
+/* Export Actions 
+-------------------------------------------------- */
+.export-actions {
+    margin-top: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.export-header {
+    font-size: 1rem;
+    font-weight: 500;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.export-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.export-buttons button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: white;
+    color: #333;
+    border: 1px solid #ddd;
+    padding: 8px 15px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.export-buttons button:hover:not(:disabled) {
+    background-color: #f0f0f0;
+    border-color: #ccc;
+    transform: translateY(-2px);
+}
+
+.export-buttons button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: #f0f0f0;
+}
+
+.export-buttons button svg {
+    color: #6c757d;
+}
+
+/* Memo Sidebar 
+-------------------------------------------------- */
+.memo-sidebar {
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    padding: 15px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.memo-sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.memo-sidebar-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.memo-list {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.memo-item {
+    padding: 8px 12px;
+    background: white;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    border: 1px solid #eee;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.memo-item:hover {
+    background: #f0f0f0;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.memo-item-title {
+    font-weight: 500;
+    margin-bottom: 3px;
+    padding-right: 20px; /* Space for delete button */
+}
+
+.memo-item-date {
+    font-size: 12px;
+    color: #6c757d;
+}
+
+.memo-item-status {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-left: 5px;
+}
+
+.memo-item-status.completed {
+    background: #d4edda;
+    color: #155724;
+}
+
+.memo-item-status.processing {
+    background: #cce5ff;
+    color: #004085;
+}
+
+.memo-item-status.failed {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.no-memos {
+    color: #6c757d;
+    text-align: center;
+    padding: 20px;
+    font-style: italic;
+}
+
+/* Delete button for memos */
+.memo-delete-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: transparent;
+    border: none;
+    color: #dc3545;
+    font-size: 14px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    padding: 0;
+    margin: 0;
+    width: 20px;
+    height: 20px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.memo-item:hover .memo-delete-btn {
+    opacity: 0.7;
+}
+
+.memo-delete-btn:hover {
+    opacity: 1 !important;
+    transform: none;
+}
+
+/* Enhanced loading indicator animation
+-------------------------------------------------- */
+@keyframes pulse-border {
+    0% { box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(0, 123, 255, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(0, 123, 255, 0); }
+}
+
+.loading-container {
+    animation: pulse-border 2s infinite;
+}
+
+/* Responsive enhancements
+-------------------------------------------------- */
+@media (max-width: 768px) {
+    .dev-tools-content {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .export-buttons {
+        flex-direction: column;
+    }
+    
+    .export-buttons button {
+        width: 100%;
+    }
+}
